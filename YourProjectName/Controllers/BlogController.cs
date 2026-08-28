@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using YourProjectName.Models;
+using YourProjectName.ViewModels;
+
 
 namespace YourProjectName.Controllers
 {
@@ -29,16 +31,21 @@ namespace YourProjectName.Controllers
 
 
 
+        [HttpGet]
         public IActionResult Index()
         {
-            return View();
+            _logger.LogInformation("Displaying the blog index.");
+            List<BlogPost> blogPosts = Posts
+            .OrderByDescending(post => post.Id)
+            .ToList();
+            return View(blogPosts);
         }
 
         [HttpGet("/api/blog")]
         public IActionResult GetAll([FromQuery] string? search)
         {
             _logger.LogInformation(
-            "GET request received for all blog posts. Search term: { SearchTerm}", search);
+                "GET request received for all blog posts. Search term: {SearchTerm}", search);
             if (string.IsNullOrWhiteSpace(search))
             {
                 return Ok(Posts);
@@ -137,6 +144,44 @@ namespace YourProjectName.Controllers
             Posts.Remove(post);
             return NoContent();
         }
+
+        [HttpGet]
+        public IActionResult Create()
+        {
+            _logger.LogInformation("Displaying the Create Blog Post form.");
+            BlogPostCreateViewModel viewModel = new();
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Create(BlogPostCreateViewModel viewModel)
+        {
+            _logger.LogInformation(
+            "Create Blog Post form submitted with title {PostTitle}.",
+            viewModel.Title);
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning(
+                "The Create Blog Post form contained validation errors.");
+                return View(viewModel);
+            }
+            int nextId = Posts.Count == 0
+            ? 1
+            : Posts.Max(post => post.Id) + 1;
+            BlogPost newPost = new()
+            {
+                Id = nextId,
+                Title = viewModel.Title.Trim(),
+                Content = viewModel.Content.Trim()
+            };
+            Posts.Add(newPost);
+            _logger.LogInformation(
+            "Blog post {PostId} was created successfully.",
+            newPost.Id);
+            return RedirectToAction(nameof(Index));
+        }
+
 
     }
 }

@@ -1,0 +1,23 @@
+﻿@model BlogPostCreateViewModel
+@{
+    ViewData["Title"] = "Add Blog Post";
+}
+<h1>Add Blog Post</h1>
+<p>Enter a title and content for the new blog post.</p>
+<form asp-controller="Blog"
+      asp-action="Create"
+      method="post">
+    <partial name="_BlogPostForm" model="Model" />
+    <button type="submit" class="btn btn-primary">
+        Add Post
+    </button>
+    <a asp-controller="Blog"
+       asp-action="Index"
+       class="btn btn-secondary">
+        Cancel
+    </a>
+</form>
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+}
