@@ -81,7 +81,7 @@ namespace YourProjectName.Controllers
         }
 
         [HttpPost("/api/blog")]
-        public IActionResult Create([FromBody] BlogPost newPost)
+        public IActionResult CreateApi([FromBody] BlogPost newPost)
         {
             _logger.LogInformation(
             "POST request received to create a blog post titled {PostTitle}.",
