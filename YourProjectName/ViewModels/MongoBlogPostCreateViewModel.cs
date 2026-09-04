@@ -17,6 +17,11 @@ namespace YourProjectName.ViewModels
         public string AuthorEmail { get; set; } = string.Empty;
         public List<string> Tags { get; set; } = [];
         public bool IsPublished { get; set; }
+        [Required]
+        public string AuthorId { get; set; } = string.Empty;
+        [Required]
+        public string Category { get; set; } = string.Empty;
+
     }
 
 }

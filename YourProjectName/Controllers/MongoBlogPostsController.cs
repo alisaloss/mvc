@@ -1,5 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
+using MongoDB.Bson;
+using MongoDB.Driver;
+using System.Collections.Generic;
 using YourProjectName.Models;
 using YourProjectName.Services;
 using YourProjectName.ViewModels;
@@ -49,11 +52,14 @@ namespace YourProjectName.Controllers
             {
                 Title = viewModel.Title.Trim(),
                 Content = viewModel.Content.Trim(),
+                Category = viewModel.Category.Trim(),
                 Author = new AuthorDocument
                 {
+                    AuthorId = viewModel.AuthorId.Trim(),
                     Name = viewModel.AuthorName.Trim(),
                     Email = viewModel.AuthorEmail.Trim()
                 },
+
                 Tags = viewModel.Tags,
                 ViewCount = 0,
                 IsPublished = viewModel.IsPublished,
@@ -72,64 +78,16 @@ namespace YourProjectName.Controllers
             document);
         }
 
-        [HttpPost("seed")]
-        public async Task<IActionResult> Seed(
+        [HttpPost("seed-query-data")]
+        public async Task<IActionResult> SeedQueryData(
  CancellationToken cancellationToken)
         {
-            List<BlogPostDocument> samplePosts =
-            [
-            new BlogPostDocument
- {
- Title = "MVC Controllers",
- Content = "Controllers receive requests and select application responses.",
- Author = new AuthorDocument
- {
- Name = "Sam Chen",
- Email = "sam@example.com"
- },
- Tags = ["mvc", "aspnet"],
- ViewCount = 20,
- IsPublished = true,
- CreatedAtUtc = DateTime.UtcNow,
- PublishedAtUtc = DateTime.UtcNow
- },
- new BlogPostDocument
- {
- Title = "MongoDB Documents",
- Content = "MongoDB stores data using flexible BSON documents.",
- Author = new AuthorDocument
- {
- Name = "Sam Chen",
- Email = "sam@example.com"
- },
- Tags = ["mongodb", "nosql"],
- ViewCount = 14,
- IsPublished = true,
- CreatedAtUtc = DateTime.UtcNow,
- PublishedAtUtc = DateTime.UtcNow
- },
- new BlogPostDocument
- {
- Title = "Future Article",
- Content = "This document represents an unpublished draft blog post.",
- Author = new AuthorDocument
- {
- Name = "Taylor Singh",
- Email = "taylor@example.com"
- },
- Tags = ["mongodb", "draft"],
- ViewCount = 0,
- IsPublished = false,
- CreatedAtUtc = DateTime.UtcNow,
- PublishedAtUtc = null
- }
-            ];
-            await _service.InsertManyAsync(
-            samplePosts,
+            await _service.InsertQueryTestDataAsync(
+            300,
             cancellationToken);
             return Ok(new
             {
-                inserted = samplePosts.Count
+                inserted = 300
             });
         }
 
@@ -191,5 +149,141 @@ namespace YourProjectName.Controllers
                 deleted
             });
         }
+
+        [HttpGet("category/{category}")]
+        public async Task<ActionResult<List<BlogPostDocument>>>
+             GetByCategory(
+             string category,
+             [FromQuery] int limit = 10,
+             CancellationToken cancellationToken = default)
+        {
+            limit = Math.Clamp(limit, 1, 100);
+            List<BlogPostDocument> posts =
+            await _service.GetPublishedByCategoryAsync(
+            category,
+            limit,
+            cancellationToken);
+            return Ok(posts);
+        }
+
+        [HttpGet("author/{authorId}")]
+        public async Task<ActionResult<List<BlogPostDocument>>>
+             GetByAuthor(
+             string authorId,
+             CancellationToken cancellationToken)
+        {
+            List<BlogPostDocument> posts =
+            await _service.GetByAuthorAsync(
+            authorId,
+            cancellationToken);
+            return Ok(posts);
+        }
+
+        [HttpGet("popular")]
+        public async Task<ActionResult<List<BlogPostDocument>>> GetPopularPosts(
+        [FromQuery] int minimumViews = 500,
+        CancellationToken cancellationToken = default)
+        {
+            List<BlogPostDocument> posts =
+                await _service.GetPopularPostsAsync(
+                    minimumViews,
+                    cancellationToken);
+
+            return Ok(posts);
+        }
+
+        [HttpGet("category/{category}/summary")]
+        public async Task<
+         ActionResult<List<BlogPostSummaryViewModel>>>
+         GetCategorySummary(
+         string category,
+         [FromQuery] int limit = 10,
+         CancellationToken cancellationToken = default)
+        {
+            limit = Math.Clamp(limit, 1, 100);
+            List<BlogPostSummaryViewModel> posts =
+            await _service.GetCategorySummariesAsync(
+            category,
+            limit,
+            cancellationToken);
+            return Ok(posts);
+        }
+
+        [HttpPut("{id:length(24)}")]
+        public async Task<IActionResult> Update(
+             string id,
+             BlogPostUpdateViewModel viewModel,
+             CancellationToken cancellationToken)
+        {
+            bool updated =
+                await _service.UpdateAsync(
+                    id,
+                    viewModel,
+                    cancellationToken);
+            if (!updated)
+            {
+                return NotFound();
+            }
+            return NoContent();
+        }
+
+        [HttpPut("category/{category}/publish")]
+        public async Task<IActionResult> PublishCategory(
+            string category,
+            CancellationToken cancellationToken)
+        {
+            long modified =
+                await _service.PublishCategoryAsync(
+                    category,
+                    cancellationToken);
+
+            return Ok(new
+            {
+                modified
+            });
+        }
+
+        [HttpDelete("category/{category}/drafts")]
+                public async Task<IActionResult> DeleteDraftsByCategory(
+             string category,
+             CancellationToken cancellationToken)
+        {
+            long deleted =
+                await _service.DeleteDraftsByCategoryAsync(
+                    category,
+                    cancellationToken);
+
+            return Ok(new
+            {
+                deleted
+            });
+        }
+
+        [HttpGet("category/{category}/drafts")]
+                public async Task<ActionResult<List<BlogPostDocument>>> GetDraftsByCategory(
+            string category,
+            CancellationToken cancellationToken)
+        {
+            List<BlogPostDocument> posts =
+                await _service.GetDraftsByCategoryAsync(
+                    category,
+                    cancellationToken);
+
+            return Ok(posts);
+        }
+
+        [HttpPost("indexes")]
+        public async Task<IActionResult> CreateIndexes(
+ CancellationToken cancellationToken)
+        {
+            await _service.CreateIndexesAsync(
+            cancellationToken);
+            return Ok(new
+            {
+                message = "Indexes created."
+            });
+        }
+
+
     }
 }

@@ -13,7 +13,10 @@ namespace YourProjectName.Models
         public string Title { get; set; } = string.Empty;
         [BsonElement("content")]
         public string Content { get; set; } = string.Empty;
+        [BsonElement("category")]
+        public string Category { get; set; } = string.Empty;
         [BsonElement("author")]
+
         public AuthorDocument Author { get; set; } = new();
         [BsonElement("tags")]
         public List<string> Tags { get; set; } = [];
